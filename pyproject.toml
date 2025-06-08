@@ -1,0 +1,37 @@
+[project]
+name = "autoanalyst"
+version = "0.1.0"
+description = "Default template for PDM package"
+authors = [{ name = "Oracen", email = "alex.stenlake@gmail.com" }]
+dependencies = [
+    "duckdb>=1.2.2",
+    "jupyter>=1.1.1",
+    "pandas>=2.2.3",
+    "pyarrow>=20.0.0",
+    "matplotlib>=3.10.3",
+    "networkx>=3.5",
+    "graphviz>=0.20.3",
+    "scipy>=1.15.3",
+]
+requires-python = ">=3.12,<3.12.5"
+readme = "README.md"
+license = { text = "MIT" }
+
+
+[build-system]
+requires = ["pdm-backend"]
+build-backend = "pdm.backend"
+
+[tool.isort]
+multi_line_output = 3
+include_trailing_comma = true
+force_grid_wrap = 0
+line_length = 88
+profile = "black"
+
+[tool.pdm]
+distribution = true
+
+
+[dependency-groups]
+dev = ["isort>=6.0.1"]
