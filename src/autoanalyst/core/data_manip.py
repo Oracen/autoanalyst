@@ -5,6 +5,16 @@ import pandas as pd
 from .string_maps import DATE_COL, ID_COL
 
 
+def standardise_index(df: pd.DataFrame, date_col: str, id_col: str) -> pd.DataFrame:
+
+    return df.rename_axis(index={date_col: DATE_COL, id_col: ID_COL})
+
+
+def remap_index(df: pd.DataFrame, date_col: str, id_col: str) -> pd.DataFrame:
+
+    return df.rename_axis(index={DATE_COL: date_col, ID_COL: id_col})
+
+
 def sequence_index(df: pd.DataFrame, date_col: str, id_col: str) -> pd.DataFrame:
     """
     Set the index of the DataFrame to a multi-index based on date and ID columns.
@@ -45,4 +55,4 @@ def prep_columns(
     # Build the raw components of the decomposition equation from lagged values (i.e.
     # the metric_{t-1} component) and the diffs (i.e. the del metric_t component)
     sequenced = sequence_index(df[all_cols], date_col, id_col)
-    return sequenced.rename_axis(index={date_col: DATE_COL, id_col: ID_COL})
+    return standardise_index(sequenced, date_col, id_col)

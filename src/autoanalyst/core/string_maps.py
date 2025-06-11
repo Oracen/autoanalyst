@@ -55,3 +55,17 @@ def iterate_reserved_keywords(names: List[str]):
 
 def residual_colname(node_name):
     return f"{node_name}{RESIDUAL_SUFFIX}"
+
+
+def mermaid_nesting(depth: int, directive: str) -> str:
+    """
+    Generate a Mermaid subgraph directive with the specified depth.
+
+    Args:
+        depth (int): The depth of the nesting.
+        directive (str): The Mermaid directive to use (e.g., 'subgraph').
+
+    Returns:
+        str: The Mermaid subgraph directive with the specified depth.
+    """
+    return "    " * depth + f"{directive}"

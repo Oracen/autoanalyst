@@ -1,20 +1,47 @@
 import itertools
 
+import numpy as np
 import pandas as pd
 
 from autoanalyst.core import string_maps
-from autoanalyst.core.base_classes import BaseTransformer
-
-# _DIFF_TAG = "_diff"
-# _LAG_TAG = "_lag"
+from autoanalyst.core.base_classes import BaseTransformer, BaseUnitConversionStrategy
+from autoanalyst.transform.unit_conversion_strategies.sum_of_whole import (
+    SumOfWholeStrategy,
+)
 
 
 def _map_col(col: str, is_diff: bool) -> str:
     return col + (string_maps.DIFF_SUFFIX if is_diff else string_maps.LAG_SUFFIX)
 
 
+def _padded_diff(inner):
+
+    return pd.DataFrame(
+        np.diff(inner, prepend=0, axis=0),
+        index=inner.index,
+        columns=inner.columns,
+    )
+
+
+def _prep_cols(df: pd.DataFrame, group_cols: list[str]) -> pd.DataFrame:
+
+    df = pd.concat(
+        [
+            df.groupby(group_cols).shift(1).add_suffix(string_maps.LAG_SUFFIX),
+            df.groupby(group_cols)
+            .apply(_padded_diff)
+            .add_suffix(string_maps.DIFF_SUFFIX)
+            .droplevel(0),
+        ],
+        axis=1,
+    ).fillna(0)
+
+    return df
+
+
 def decompose_funnel_metrics(
     df: pd.DataFrame,
+    funnel_cols: list[str],
 ) -> pd.DataFrame:
     """Decompose arbitrary funnel metrics into top-level KPI-valued contributions.
 
@@ -33,15 +60,6 @@ def decompose_funnel_metrics(
     Returns:
         DataFrame with columns [date_col, group_cols, metrics, kpi, kpi_contribution]
     """
-    group_col = [string_maps.ID_COL]
-    funnel_cols = df.columns.tolist()
-    df = pd.concat(
-        [
-            df.groupby(group_col).shift(1).add_suffix(string_maps.LAG_SUFFIX),
-            df.groupby(group_col).diff(1).add_suffix(string_maps.DIFF_SUFFIX),
-        ],
-        axis=1,
-    ).fillna(0)
 
     # Get the cartesian product of all possible combinations of True/False values
     # For our non-target columns below, these will forn the "other" contributions
@@ -89,12 +107,23 @@ class MetricDecompTransform(BaseTransformer):
     """
 
     def __init__(
-        self, id_col: str = string_maps.ID_COL, date_col: str = string_maps.DATE_COL
+        self,
+        id_col: str = string_maps.ID_COL,
+        date_col: str = string_maps.DATE_COL,
+        unit_conversion_strategy: BaseUnitConversionStrategy | None = None,
     ):
         """
         Initialize the MetricDecompTransform.
         """
-        super().__init__(id_col=id_col, date_col=date_col)
+
+        unit_converter = (
+            SumOfWholeStrategy(id_col=id_col, date_col=date_col)
+            if unit_conversion_strategy is None
+            else unit_conversion_strategy
+        )
+        super().__init__(
+            id_col=id_col, date_col=date_col, unit_conversion_strategy=unit_converter
+        )
 
     def fit(self, X, y):
         """
@@ -107,9 +136,42 @@ class MetricDecompTransform(BaseTransformer):
         """
         Transform the data by decomposing metrics.
         """
-        transformed = decompose_funnel_metrics(
-            df=X,
-        )
 
+        #
+        group_col = [self.id_col]
+        funnel_cols = X.columns.tolist()
+        # return _prep_cols(X, group_col, self.multiplier_cols)
+
+        # The metric decomp is a stateless transformation, so we can just
+        # apply it directly to the input DataFrame.
+        transformed = decompose_funnel_metrics(
+            df=_prep_cols(X, group_col),
+            funnel_cols=funnel_cols,
+        )
+        # The output of the decomp is a set of deltas, all in the top-level KPI
+        # column's units. We need to recover the origial scale (i.e. not diffs)
+        # by cumulatively summing the deltas then adding the value at t=0
+        # Rounding is done to avoid floating point precision issues
+        transformed = transformed.groupby(self.id_col).cumsum().round(9)
+
+        # Finally, we need to add the residual column, which is the difference
+        # between the original metric and the sum of the contributions.
         transformed[string_maps.RESIDUAL_COL] = y - transformed.sum(axis=1)
         return transformed
+
+    def map_units(
+        self,
+        X: pd.DataFrame,
+        y: pd.Series,
+        target: pd.Series,
+        is_id_compatible: bool = False,
+    ) -> pd.DataFrame:
+        """
+        Map units of the data. This is a no-op by default.
+        """
+        return self.unit_conversion(
+            X=X,
+            y=y,
+            target=target,
+            is_id_compatible=is_id_compatible,
+        )

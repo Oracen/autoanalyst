@@ -35,3 +35,7 @@ class MetricTreeNode:
 
         # If a loader override is provided, it will be used instead of the default loader.
         self.loader_override = loader_override
+
+    def get_all_cols(self) -> list[str]:
+        """Get all columns associated with this node."""
+        return [self.head_col] + self.children_cols

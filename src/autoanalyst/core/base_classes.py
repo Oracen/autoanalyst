@@ -1,9 +1,6 @@
 import abc
-from turtle import st
 
 import pandas as pd
-
-from .string_maps import DATE_COL, ID_COL
 
 
 class BaseTransformer(abc.ABC):
@@ -11,7 +8,12 @@ class BaseTransformer(abc.ABC):
     Abstract base class for transformers. Assumes index is (id, date)
     """
 
-    def __init__(self, id_col: str, date_col: str):
+    def __init__(
+        self,
+        id_col: str,
+        date_col: str,
+        unit_conversion_strategy: "BaseUnitConversionStrategy",
+    ):
         """
         Initialize the transformer with ID and date columns. Defaults are used within
         the AutoAnalyst framework, but can be overridden if necessary to e.g. link into
@@ -19,28 +21,42 @@ class BaseTransformer(abc.ABC):
         """
         self.id_col = id_col
         self.date_col = date_col
+        self.unit_conversion = unit_conversion_strategy
 
     @abc.abstractmethod
     def fit(self, X: pd.DataFrame, y: pd.Series):
         """
         Fit the transformer to the data.
         """
-        assert X.index == y.index
+        assert (X.index == y.index).all()
         return self
 
     @abc.abstractmethod
-    def transform(self, X: pd.DataFrame, y: pd.Series):
+    def transform(self, X: pd.DataFrame, y: pd.Series) -> pd.DataFrame:
         """
         Transform the data.
         """
         pass
 
-    def fit_transform(self, X: pd.DataFrame, y: pd.Series):
+    def fit_transform(self, X: pd.DataFrame, y: pd.Series) -> pd.DataFrame:
         """
         Fit and transform the data.
         """
         self.fit(X, y)
         return self.transform(X, y)
+
+    @abc.abstractmethod
+    def map_units(
+        self,
+        X: pd.DataFrame,
+        y: pd.Series,
+        target: pd.Series,
+        is_id_compatible: bool = False,
+    ) -> pd.DataFrame:
+        """
+        Map units of the data. This is a no-op by default.
+        """
+        return X
 
 
 class BaseLoader(abc.ABC):
@@ -72,13 +88,22 @@ class BaseEntity(abc.ABC):
     Abstract base class for entities.
     """
 
-    def __init__(self, name: str, id_col: str, date_col: str):
+    def __init__(
+        self,
+        name: str,
+        id_col: str,
+        date_col: str,
+        dim_cols: list[str],
+        metric_cols: list[str],
+    ):
         """
         Initialize the entity with a name and ID/date columns.
         """
         self.name = name
         self.id_col = id_col
         self.date_col = date_col
+        self.dim_cols = dim_cols
+        self.metric_cols = metric_cols
 
         self.valid_columns = self.get_valid_columns()
 
@@ -92,7 +117,9 @@ class BaseEntity(abc.ABC):
         pass
 
     def _check_key_cols(self):
-        missing = self.check_column_membership([self.id_col, self.date_col])
+        missing = self.check_column_membership(
+            [self.id_col, self.date_col] + self.dim_cols + self.metric_cols
+        )
         if missing:
             raise ValueError(
                 f"Entity {self.name} is missing key columns: {missing}. "
@@ -101,3 +128,90 @@ class BaseEntity(abc.ABC):
 
     def check_column_membership(self, candidate_columns: list[str]):
         return [col for col in candidate_columns if col not in self.valid_columns]
+
+    @abc.abstractmethod
+    def load_columns(self, columns: list[str]) -> pd.DataFrame:
+        """
+        Load specific columns from the entity.
+        """
+        pass
+
+    def load_dims(self) -> pd.DataFrame:
+        """
+        Load dimension columns from the entity.
+        """
+        return self.load_columns(self.dim_cols)
+
+
+class BaseStorageModule(abc.ABC):
+    """
+    Abstract base class for storage modules.
+    """
+
+    def __init__(self):
+        """
+        Initialize the storage module with an option to save intermediate results.
+        """
+
+    @abc.abstractmethod
+    def save_dataset(self, name: str, entity: pd.DataFrame):
+        """
+        Save an entity to the storage module.
+        """
+        pass
+
+    @abc.abstractmethod
+    def load_dataset(self, name: str) -> pd.DataFrame:
+        """
+        Load an entity from the storage module by name.
+        """
+        pass
+
+
+class BaseUnitConversionStrategy(abc.ABC):
+    """
+    Abstract base class for unit conversion strategies.
+    """
+
+    def __init__(self, id_col: str, date_col: str):
+        """
+        Initialize the unit conversion strategy with ID and date columns.
+        """
+        self.id_col = id_col
+        self.date_col = date_col
+
+    def __call__(
+        self,
+        X: pd.DataFrame,
+        y: pd.Series,
+        target: pd.Series,
+        is_id_compatible: bool = False,
+    ) -> pd.DataFrame:
+        """
+        Convert units of the data.
+        """
+        if is_id_compatible:
+            return self.id_compatible_transform(X, y, target)
+        else:
+            return self.grain_change_transform(X, y, target)
+
+    @abc.abstractmethod
+    def id_compatible_transform(
+        self, X: pd.DataFrame, y: pd.Series, target: pd.Series
+    ) -> pd.DataFrame:
+        """
+        Check if the ID columns of X and y are compatible.
+        """
+        pass
+
+    @abc.abstractmethod
+    def grain_change_transform(
+        self,
+        X: pd.DataFrame,
+        y: pd.Series,
+        target: pd.Series,
+    ) -> pd.DataFrame:
+        """
+        Transform the data to a different grain.
+        """
+        pass
