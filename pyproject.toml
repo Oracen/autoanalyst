@@ -17,6 +17,7 @@ dependencies = [
     "numpy>=2.3.1",
     "esig>=1.0.0",
     "tdqm>=0.0.1",
+    "tbb>=2022.2.0",
 ]
 requires-python = ">=3.12,<3.12.5"
 readme = "README.md"

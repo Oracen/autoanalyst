@@ -1,7 +1,7 @@
 import pandas as pd
 
 from autoanalyst.core import data_manip
-from autoanalyst.core.base_classes import BaseEntity
+from autoanalyst.core.base_classes import BaseCategoryAggregator, BaseEntity
 
 
 class DataFrameEntity(BaseEntity):
@@ -18,6 +18,7 @@ class DataFrameEntity(BaseEntity):
         dim_cols: list[str],
         metric_cols: list[str],
         df: pd.DataFrame,
+        category_aggregator: BaseCategoryAggregator,
     ):
 
         self.df = data_manip.sequence_index(df, date_col, id_col)
@@ -27,6 +28,7 @@ class DataFrameEntity(BaseEntity):
             date_col=date_col,
             dim_cols=dim_cols,
             metric_cols=metric_cols,
+            category_aggregator=category_aggregator,
         )
 
     def __repr__(self):

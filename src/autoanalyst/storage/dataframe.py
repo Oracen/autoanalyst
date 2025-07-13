@@ -15,9 +15,16 @@ class DataFrameStorageModule(BaseStorageModule):
         """
         super().__init__()
         self.processed_datasets: dict[str, pd.DataFrame] = {}
+        self.processed_categories: dict[str, pd.DataFrame] = {}
 
     def save_dataset(self, name: str, entity: pd.DataFrame):
         self.processed_datasets[name] = entity
 
     def load_dataset(self, name: str) -> pd.DataFrame:
-        return self.processed_datasets[name]
+        return self.processed_datasets[name].copy()
+
+    def save_categories(self, name: str, categories: pd.DataFrame):
+        self.processed_categories[name] = categories
+
+    def load_categories(self, name: str) -> pd.DataFrame:
+        return self.processed_categories[name].copy()

@@ -1,4 +1,6 @@
 import abc
+from ast import Dict, Tuple
+from typing import Any
 
 import pandas as pd
 
@@ -95,6 +97,7 @@ class BaseEntity(abc.ABC):
         date_col: str,
         dim_cols: list[str],
         metric_cols: list[str],
+        category_aggregator: "BaseCategoryAggregator",
     ):
         """
         Initialize the entity with a name and ID/date columns.
@@ -104,6 +107,7 @@ class BaseEntity(abc.ABC):
         self.date_col = date_col
         self.dim_cols = dim_cols
         self.metric_cols = metric_cols
+        self.category_aggregator = category_aggregator
 
         self.valid_columns = self.get_valid_columns()
 
@@ -164,6 +168,20 @@ class BaseStorageModule(abc.ABC):
     def load_dataset(self, name: str) -> pd.DataFrame:
         """
         Load an entity from the storage module by name.
+        """
+        pass
+
+    @abc.abstractmethod
+    def load_categories(self, head_col: str, children_cols: list[str]) -> pd.DataFrame:
+        """
+        Load metrics data for a given entity.
+        """
+        pass
+
+    @abc.abstractmethod
+    def save_categories(self, name: str, categories: pd.DataFrame):
+        """
+        Save categories to the storage module.
         """
         pass
 
@@ -254,12 +272,15 @@ class BaseCategoryAggregator(abc.ABC):
         self.preprocessors = preprocessors
 
     @abc.abstractmethod
-    def aggregate(
-        self, X: pd.DataFrame, categories: pd.DataFrame
-    ) -> dict[str, list[list[str]]]:
+    def aggregate(self, X: pd.DataFrame, categories: pd.DataFrame) -> pd.DataFrame:
         """
         Aggregate the data by categories.
         """
+        pass
+
+    @abc.abstractmethod
+    def aggregate_raw(self, X: pd.DataFrame, categories: pd.DataFrame) -> Any:
+        """Allow debugging of algorithm internals"""
         pass
 
     def preprocess(self, X: pd.DataFrame, categories: pd.DataFrame) -> pd.DataFrame:

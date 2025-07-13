@@ -1,6 +1,8 @@
 from collections import defaultdict
+from typing import Any
 
 import networkx as nx
+import pandas as pd
 
 from autoanalyst.core import base_classes, data_manip, string_maps
 
@@ -297,3 +299,52 @@ class MetricTree:
 
             df_x[node_obj.head_col] = df_x.sum(axis=1)
             self.storage_module.save_dataset(node_obj.name, df_x)
+
+    def _build_entity_metric_dataset(self, entity_name: str, pop_head_col):
+        data = []
+        for node_key in nx.bfs_tree(self.tree_structure, self.root_node):
+            node = self.nodes[node_key]
+            # Filter down nodes to those matching the entity
+            if node.entity != entity_name:
+                continue
+
+            metric_data = self.storage_module.load_dataset(node_key)
+            if pop_head_col:
+                metric_data.pop(node.head_col)
+            # Handle utility columns like residuals by renaming them
+            metric_data.columns = [
+                col if col in node.children_cols else f"{node.name}__{col}"
+                for col in metric_data.columns
+            ]
+            data.append(metric_data)
+
+        return pd.concat(data, axis=1)
+
+    def check_entity_embedding(self, entity_name: str) -> Any:
+        entity = self.entities[entity_name]
+        metric_data = self._build_entity_metric_dataset(entity_name, pop_head_col=True)
+
+        categories = data_manip.standardise_index(
+            self.entities[entity_name].load_dims(),
+            entity.date_col,
+            entity.id_col,
+        )
+        return entity.category_aggregator.aggregate_raw(metric_data, categories)
+
+    def agg_categories(self, entity_name: str) -> pd.DataFrame:
+        entity = self.entities[entity_name]
+        metric_data = self._build_entity_metric_dataset(entity_name, pop_head_col=True)
+        categories = data_manip.standardise_index(
+            self.entities[entity_name].load_dims(),
+            entity.date_col,
+            entity.id_col,
+        )
+
+        return entity.category_aggregator.aggregate(metric_data, categories)
+
+    def standardise_categories(self):
+        for entity_key, entity_value in self.entities.items():
+
+            # Build/run the collapse algorithm once per entity
+            categories = self.agg_categories(entity_key)
+            self.storage_module.save_categories(entity_key, categories)

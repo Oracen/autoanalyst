@@ -5,7 +5,7 @@
 groups = ["default", "dev"]
 strategy = ["inherit_metadata"]
 lock_version = "4.5.0"
-content_hash = "sha256:82bff9c4d85dad620734e7bf4ff640ff15e809eab2768862862846a4c40e489d"
+content_hash = "sha256:3403793f2a2d45c2407a0805848fe2c4124d6ecd7c2e030564fe359df5e08627"
 
 [[metadata.targets]]
 requires_python = ">=3.12,<3.12.5"
@@ -1944,11 +1944,23 @@ files = [
 ]
 
 [[package]]
+name = "tbb"
+version = "2022.2.0"
+summary = "Intel® oneAPI Threading Building Blocks (oneTBB)"
+groups = ["default"]
+dependencies = [
+    "tcmlib==1.*",
+]
+files = [
+    {file = "tbb-2022.2.0-py2.py3-none-manylinux_2_28_x86_64.whl", hash = "sha256:522189f3e370a6b9c92b8a7fbdecf3633f7c53f0ea4eb8d6891a7f5f00c78099"},
+    {file = "tbb-2022.2.0-py3-none-win_amd64.whl", hash = "sha256:acbce7632d4d7acc6bdfe9849a57ab1624490198699eb16ea63243cfb4fd4cfa"},
+]
+
+[[package]]
 name = "tcmlib"
 version = "1.4.0"
 summary = "Thread Composability Manager"
 groups = ["default"]
-marker = "(platform_machine == \"AMD64\" or platform_machine == \"x86_64\") and sys_platform != \"darwin\""
 files = [
     {file = "tcmlib-1.4.0-py2.py3-none-manylinux_2_28_x86_64.whl", hash = "sha256:b2a2b68c100cc2a6163d394353b3013ab2479e70300b9bc1cb7f7822bcc38a40"},
     {file = "tcmlib-1.4.0-py2.py3-none-win_amd64.whl", hash = "sha256:ab24f73c52b224cb744a0c0c28fcef8e51aec3c88aa6b39202c149495d6d2ea0"},

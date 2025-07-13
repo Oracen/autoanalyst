@@ -1,3 +1,4 @@
+import re
 from cProfile import label
 from typing import Tuple
 
@@ -172,7 +173,7 @@ class SignatureKernelAggregator(BaseCategoryAggregator):
         signature_depth: int = 2,
         kernel_basis_size: int = 30,
         projection_size: int = 1000,
-        membership_threshold: float = 0.75,
+        membership_threshold: float = 0.66,
         id_col: str = string_maps.ID_COL,
         date_col: str = string_maps.DATE_COL,
         min_cluster_size: int | None = None,
@@ -271,11 +272,29 @@ class SignatureKernelAggregator(BaseCategoryAggregator):
 
         return remapping
 
+    def _coarsegrain_categories(
+        self,
+        categories: pd.DataFrame,
+        category_group_mappings: dict[str, list[list[str]]],
+    ) -> pd.DataFrame:
+        """
+        Coarse-grain the categories based on the provided mappings.
+        """
+        categories = categories.copy()
+        for key, value in category_group_mappings.items():
+            remapper = {}
+            for graining in value:
+                new_cat = f"{'--'.join(graining)}"
+                remapper.update({col: new_cat for col in graining})
+            categories[key] = categories[key].replace(to_replace=remapper)
+
+        return categories
+
     def aggregate_raw(
         self,
         X: pd.DataFrame,
         categories: pd.DataFrame,
-    ) -> Tuple[pd.DataFrame, pd.Series]:
+    ) -> Tuple[pd.DataFrame, pd.Series, dict[str, list[list[str]]]]:
         """
         Aggregate the data based on signatures.
 
@@ -289,13 +308,15 @@ class SignatureKernelAggregator(BaseCategoryAggregator):
         x_tx = self.preprocess(X, categories)
         x_tx = self._map_to_density(x_tx.astype(np.float32))
         labels = self._cluster_obs(x_tx)
+        mappings = self._agg_categories(categories, labels)
 
-        return x_tx, labels
+        return x_tx, labels, mappings
 
     def aggregate(
         self,
         X: pd.DataFrame,
         categories: pd.DataFrame,
-    ) -> dict[str, list[list[str]]]:
-        _, labels = self.aggregate_raw(X, categories)
-        return self._agg_categories(categories, labels)
+    ) -> pd.DataFrame:
+        _, _, mappings = self.aggregate_raw(X, categories)
+
+        return self._coarsegrain_categories(categories, mappings)
