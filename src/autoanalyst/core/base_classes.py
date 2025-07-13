@@ -215,3 +215,63 @@ class BaseUnitConversionStrategy(abc.ABC):
         Transform the data to a different grain.
         """
         pass
+
+
+class BaseAggregatorEnhancer(abc.ABC):
+    """
+    Abstract base class for aggregator enhancers; feature engineering for clustering
+    """
+
+    def __init__(self, id_col: str, date_col: str):
+        """
+        Initialize the aggregator enhancer with ID and date columns.
+        """
+        self.id_col = id_col
+        self.date_col = date_col
+
+    @abc.abstractmethod
+    def enhance(self, X: pd.DataFrame, categories: pd.DataFrame) -> pd.DataFrame:
+        """
+        Enhance the data for aggregation.
+        """
+        pass
+
+
+class BaseCategoryAggregator(abc.ABC):
+    """
+    Abstract base class for category aggregators; clustering algos for category
+    reduction.
+    """
+
+    def __init__(
+        self, id_col: str, date_col: str, preprocessors: list[BaseAggregatorEnhancer]
+    ):
+        """
+        Initialize the category aggregator with ID and date columns.
+        """
+        self.id_col = id_col
+        self.date_col = date_col
+        self.preprocessors = preprocessors
+
+    @abc.abstractmethod
+    def aggregate(
+        self, X: pd.DataFrame, categories: pd.DataFrame
+    ) -> dict[str, list[list[str]]]:
+        """
+        Aggregate the data by categories.
+        """
+        pass
+
+    def preprocess(self, X: pd.DataFrame, categories: pd.DataFrame) -> pd.DataFrame:
+        """
+        Preprocess the data using the registered preprocessors.
+        """
+
+        return pd.concat(
+            [X]
+            + [
+                preprocessor.enhance(X, categories)
+                for preprocessor in self.preprocessors
+            ],
+            axis=1,
+        )

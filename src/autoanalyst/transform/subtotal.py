@@ -2,7 +2,7 @@ import pandas as pd
 
 from autoanalyst.core import string_maps
 from autoanalyst.core.base_classes import BaseTransformer, BaseUnitConversionStrategy
-from autoanalyst.transform.unit_conversion_strategies.sum_of_whole import (
+from autoanalyst.transform.unit_conversion_strategies import (
     SumOfWholeStrategy,
 )
 

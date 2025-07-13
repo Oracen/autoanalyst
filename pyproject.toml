@@ -12,6 +12,11 @@ dependencies = [
     "networkx>=3.5",
     "graphviz>=0.20.3",
     "scipy>=1.15.3",
+    "scikit-learn>=1.7.0",
+    "statsmodels>=0.14.4",
+    "numpy>=2.3.1",
+    "esig>=1.0.0",
+    "tdqm>=0.0.1",
 ]
 requires-python = ">=3.12,<3.12.5"
 readme = "README.md"

@@ -24,8 +24,7 @@ class SumOfWholeStrategy(BaseUnitConversionStrategy):
         # By construction, X (with its resids) sums to y, so we can use y in the
         # denominator to normalise the contributions. We then multiply by Y
         # TODO: Figure out a more robust way to handle zeros
-        print("REMOVE ME")
-        print(X.div(y, axis=0).mul(target, axis=0).head())
+
         return X.div(y.replace(0, np.nan), axis=0).mul(target, axis=0).fillna(0)
 
     def grain_change_transform(
