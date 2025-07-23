@@ -11,13 +11,7 @@ Traditional business analytics requires analysts to manually decompose metrics, 
 1. **Metric Tree Decomposition**: Model KPI relationships with strict or flexible definitions - everything rolls up and converts to top-level units
 2. **Signature-Based Clustering**: Collapse similar-behaving dimensions (e.g., "these 5 small cities act identically") using path signatures to map arbitrary time series into fixed-length vectors
 3. **Automated Driver Identification**: Surface major movers and component-level changes in native KPI units
-4. **Statistical Process Control**: Distinguish meaningful changes from noise using robust statistical rules
-
-## Core Innovation
-
-The signature kernel approach solves a fundamental problem in business analytics: **how to automatically group similar-behaving dimensional breakdowns**. By mapping time series of arbitrary length into fixed-dimensional vectors, we can cluster dimensions that exhibit similar patterns, allowing insignificant individual segments to become significant when aggregated.
-
-For example, 5 small cities that individually show no meaningful impact can be automatically grouped into a single cluster that becomes a major driver of regional performance.
+4. **Natural Language Input**: Generate reports and address follow-up questions with a Slack-ready chatbot! Amaze friends and coworkers by responding to the CEO while AFK!
 
 ## Target Use Case
 
