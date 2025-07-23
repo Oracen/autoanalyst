@@ -296,3 +296,26 @@ class BaseCategoryAggregator(abc.ABC):
             ],
             axis=1,
         )
+
+
+class BaseDecisionRule(abc.ABC):
+    """
+    Abstract base class for decision rules.
+    """
+
+    def __init__(self, id_col: str, date_col: str, parent_col: str):
+        """
+        Initialize the decision rule with ID and date columns.
+        """
+        self.id_col = id_col
+        self.date_col = date_col
+        self.parent_col = parent_col
+
+    @abc.abstractmethod
+    def evaluate(
+        self, X: pd.DataFrame, explained_variance: pd.DataFrame
+    ) -> pd.DataFrame:
+        """
+        Evaluate the decision rule on the data.
+        """
+        pass
