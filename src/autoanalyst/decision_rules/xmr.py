@@ -6,15 +6,17 @@ from autoanalyst.core.base_classes import BaseDecisionRule
 
 def get_xmr_bounds(data_x: pd.Series, sigma: float, sigma_d2: float) -> pd.DataFrame:
     mean = data_x.mean()
-    residual = data_x.diff().abs().dropna()
-    mean_residual = residual.mean()
-    upper_limit = mean + sigma * mean_residual
-    lower_limit = mean - sigma * mean_residual
+    diff = data_x.diff().astype(float)  # Leaving the first NaN value as is
+    sign = diff >= 0.0
+    range_x = diff.abs()
+    mean_range = range_x.mean()
+    upper_limit = mean + sigma * mean_range
+    lower_limit = mean - sigma * mean_range
 
-    upper_midpoint = mean + 0.5 * sigma * mean_residual
-    lower_midpoint = mean - 0.5 * sigma * mean_residual
+    upper_midpoint = mean + 0.5 * sigma * mean_range
+    lower_midpoint = mean - 0.5 * sigma * mean_range
 
-    upper_limit_residual = mean_residual * sigma_d2
+    upper_limit_residual = mean_range * sigma_d2
 
     return pd.DataFrame(
         {
@@ -24,8 +26,9 @@ def get_xmr_bounds(data_x: pd.Series, sigma: float, sigma_d2: float) -> pd.DataF
             "upper_midpoint": upper_midpoint,
             "lower_midpoint": lower_midpoint,
             "mean": mean,
-            "residual": residual,
-            "mean_residual": mean_residual,
+            "residual": range_x,
+            "sign": sign,
+            "mean_residual": mean_range,
             "upper_limit_residual": upper_limit_residual,
         },
         index=data_x.index,
